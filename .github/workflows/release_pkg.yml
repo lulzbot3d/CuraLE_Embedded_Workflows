@@ -1,0 +1,50 @@
+name: Prepare Environment
+
+on:
+  workflow_call:
+    inputs:
+      RELEASE_REPO:
+        description: "The Cloudsmith repository to release the package"
+        required: true
+        type: string
+
+jobs:
+  Release_Package:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_REPO: ${{ inputs.RELEASE_REPO }}
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-package
+          
+      - name: Display structure of downloaded files
+        run: ls -lh
+
+      - name: Release Package To Cloudsmith
+        id: release
+        if: ${{ env.RELEASE_REPO != 'none' }}
+        uses: cloudsmith-io/action@master
+        with:
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          command: 'push'
+          format: 'deb'
+          owner: 'ultimaker'
+          repo: "${{ env.RELEASE_REPO }}"
+          distro: 'debian'
+          release: 'buster'
+          republish: 'true'
+          file: "./*.deb"
+          
+      - name: Dump GitHub context
+        if: ${{ always() }}
+        env:
+           GITHUB_CONTEXT: ${{ toJson(github) }}
+           JOB_CONTEXT: ${{ toJson(job) }}
+           STEPS_CONTEXT: ${{ toJson(steps) }}
+           RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: |
+          echo "${GITHUB_CONTEXT}"
+          echo "${JOB_CONTEXT}"
+          echo "${STEPS_CONTEXT}"
+          echo "${RUNNER_CONTEXT}"
