@@ -1,0 +1,120 @@
+name: Prepare Environment
+
+on:
+  workflow_call:
+    outputs:
+      RELEASE_VERSION:
+        description: "The package version for this build"
+        value: ${{ jobs.Prepare.outputs.RELEASE_VERSION }}
+      RELEASE_REPO:
+        description: "The Cloudsmith repository to release the package"
+        value: ${{ jobs.Prepare.outputs.RELEASE_REPO }}
+env:
+  # All branches starting with any of the items in the list below will be
+  # considered a master branch, e.g. "master/s-line" starts with "master"
+  # from the list below and it is then a master branch.
+  MASTER_BRANCH_LIST: "main master stable"
+  VERSION_REGEX: 'v[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,9}(-(dev|[0-9]{1,3}))?'
+  
+jobs:
+  Prepare:
+    name: 'Prepare Environment'
+    runs-on: ubuntu-latest
+    outputs:
+      RELEASE_VERSION: ${{ steps.vars.outputs.RELEASE_VERSION }}
+      RELEASE_REPO: ${{ steps.vars.outputs.RELEASE_REPO }}
+    env:
+      CURRENT_BRANCH_REF: ${{ github.ref_type == 'branch' && github.ref || github.event.base_ref }}  
+    steps:
+      - name: Generate Variables
+        id: vars
+        run: |
+          echo "GITHUB_REF ${GITHUB_REF}"
+          echo "GITHUB_REF_NAME ${GITHUB_REF_NAME}"
+          echo "GITHUB_REF_TYPE: ${GITHUB_REF_TYPE}"
+          RELEASE_VERSION="999.999.999"
+          RELEASE_REPO="none"
+          
+          # Check if this is a commit/tag in the master branch
+          IS_MASTER_BRANCH="no"
+          CURRENT_BRANCH="${CURRENT_BRANCH_REF##refs/heads/}"
+          for master_branch in $MASTER_BRANCH_LIST; do
+            # Try to remove "master_branch" from "CURRENT_BRANCH" and check if it changes
+            if [[ "${CURRENT_BRANCH##${master_branch}}" != "${CURRENT_BRANCH}" ]]; then
+              IS_MASTER_BRANCH="yes"
+              break
+            fi;
+          done;
+          echo "CURRENT_BRANCH: ${CURRENT_BRANCH}"
+          echo "IS_MASTER_BRANCH: ${IS_MASTER_BRANCH}"
+          
+          # Check what triggered this action: A Pull Request, a tag push or branch push
+          TRIGGER="pull_request"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+              TRIGGER="tag"
+            else
+              TRIGGER="branch"
+            fi
+          fi
+          
+          echo "TRIGGER: ${TRIGGER}"
+          
+          if [[ "${TRIGGER}" == "branch" && "${IS_MASTER_BRANCH}" == "yes" ]]; then
+            echo "This is a merge to master, lets make the Nightly Release"
+            
+            # Lets prepare the package name from the branch name. There are a few rules for debian package version and we must follow them:
+            # - Only lowercase letters: So lets convert all uppercase letter to lower case:            
+            NIGHTLY_PACKAGE_VERSION_SUFFIX="${GITHUB_REF_NAME@L}"
+            
+            # - Other accepted chars: numbers (0-9), '.', '+' and '-'. Lets convert all other chars to '-':
+            NIGHTLY_PACKAGE_VERSION_SUFFIX=${NIGHTLY_PACKAGE_VERSION_SUFFIX//[^0-9a-z+.-]/-}
+            
+            echo "Nightly Package Version Suffix: '${NIGHTLY_PACKAGE_VERSION_SUFFIX}'"
+            RELEASE_REPO="nightly-builds"
+            RELEASE_VERSION="$(date +%Y.%m.%d)-merge-${NIGHTLY_PACKAGE_VERSION_SUFFIX}"
+            
+          elif [[ "${TRIGGER}" == "tag" ]]; then
+            echo "This is a tag push, lets parse the tag >${GITHUB_REF_NAME}< and check if we should release"
+            VERSION=$(echo "${GITHUB_REF_NAME}" | grep -o -E -e "${VERSION_REGEX}") || true   # Return true if grep finds nothing
+            RELEASE_VERSION="${VERSION#v}"  # Remove the initial "v" leaving only the numbers and optional "-dev"
+            
+            if [[ -z "${RELEASE_VERSION}" ]]; then
+              echo "Failed to parse the tag, it does not follow the standard"
+            elif [[ "${RELEASE_VERSION//dev/}" == "${RELEASE_VERSION}" ]]; then ## True if there is no "dev" in the tag
+              
+              # Only perform official releases from a master branch tag
+              if [[ "${IS_MASTER_BRANCH}" == "yes" ]]; then
+                echo "Success, this is a official release"
+                RELEASE_REPO="packages-released"
+              else
+                echo "WARNING: Releasing official packages from development branches is not allowed!"
+              fi
+            else
+              echo "Success, this is a development release"
+              RELEASE_REPO="packages-dev"
+            fi
+          fi
+          
+          if [[ "${RELEASE_REPO}" == "none" ]]; then
+              echo "This is an ordinary commit, do not release"
+              RELEASE_VERSION="999.999.999"
+          fi
+          
+          echo "RELEASE_VERSION: ${RELEASE_VERSION}"
+          echo "RELEASE_REPO: ${RELEASE_REPO}"
+          echo RELEASE_VERSION="${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo RELEASE_REPO="${RELEASE_REPO}" >> $GITHUB_OUTPUT
+
+      - name: Dump GitHub context
+        if: ${{ always() }}
+        env:
+           GITHUB_CONTEXT: ${{ toJson(github) }}
+           JOB_CONTEXT: ${{ toJson(job) }}
+           STEPS_CONTEXT: ${{ toJson(steps) }}
+           RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: |
+          echo "${GITHUB_CONTEXT}"
+          echo "${JOB_CONTEXT}"
+          echo "${STEPS_CONTEXT}"
+          echo "${RUNNER_CONTEXT}"
