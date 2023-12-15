@@ -1,5 +1,3 @@
-name: Prepare Environment
-
 on:
   workflow_call:
     inputs:
@@ -10,6 +8,7 @@ on:
 
 jobs:
   Release_Package:
+    name: 'Release Package'
     runs-on: ubuntu-latest
     env:
       RELEASE_REPO: ${{ inputs.RELEASE_REPO }}

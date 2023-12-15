@@ -1,0 +1,47 @@
+on:
+  workflow_call:
+    inputs:
+      RELEASE_VERSION:
+        description: "The version to build the package"
+        required: true
+        type: string
+
+jobs:
+  Build:
+    name: 'Build Package'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.RELEASE_VERSION }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ULTIMAKER_CI_PAT }}
+          submodules: recursive
+         
+      - name: Build Package
+        id: build
+        run: |
+          export RELEASE_VERSION="${{ env.RELEASE_VERSION }}"
+          echo "RELEASE_VERSION: ${RELEASE_VERSION}"
+          
+          ./build_for_ultimaker.sh -a build
+          
+      - name: Upload Artifact (Built package)
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-package
+          path: "./*.deb"
+
+      - name: Dump GitHub context
+        if: ${{ always() }}
+        env:
+           GITHUB_CONTEXT: ${{ toJson(github) }}
+           JOB_CONTEXT: ${{ toJson(job) }}
+           STEPS_CONTEXT: ${{ toJson(steps) }}
+           RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: |
+          echo "${GITHUB_CONTEXT}"
+          echo "${JOB_CONTEXT}"
+          echo "${STEPS_CONTEXT}"
+          echo "${RUNNER_CONTEXT}"
