@@ -1,5 +1,3 @@
-name: Prepare Environment
-
 on:
   workflow_call:
   
