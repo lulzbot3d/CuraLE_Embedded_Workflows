@@ -1,5 +1,11 @@
 on:
   workflow_call:
+    inputs:
+      BUILD_DOCKER_CACHE:
+        description: "If true, will build the docker image cache"
+        type: boolean
+        required: false
+        default: false
     outputs:
       RELEASE_VERSION:
         description: "The package version for this build"
@@ -103,6 +109,19 @@ jobs:
           echo "RELEASE_REPO: ${RELEASE_REPO}"
           echo RELEASE_VERSION="${RELEASE_VERSION}" >> $GITHUB_OUTPUT
           echo RELEASE_REPO="${RELEASE_REPO}" >> $GITHUB_OUTPUT
+
+      - name: Checkout Repository
+        if: ${{ inputs.BUILD_DOCKER_CACHE }}
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ULTIMAKER_CI_PAT }}
+          submodules: recursive
+
+      - name: "Build Docker Image Cache"
+        if: ${{ inputs.BUILD_DOCKER_CACHE }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          ./build_for_ultimaker.sh -a build_docker_cache
 
       - name: Dump GitHub context
         if: ${{ always() }}
