@@ -120,7 +120,7 @@ jobs:
       - name: "Build Docker Image Cache"
         if: ${{ inputs.BUILD_DOCKER_CACHE }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          echo "${{ secrets.ULTIMAKER_CI_PAT }}" | docker login ghcr.io -u $ --password-stdin
           ./build_for_ultimaker.sh -a build_docker_cache
 
       - name: Dump GitHub context
