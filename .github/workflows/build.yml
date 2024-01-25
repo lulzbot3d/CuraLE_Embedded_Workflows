@@ -28,7 +28,7 @@ jobs:
           ./build_for_ultimaker.sh -a build
           
       - name: Upload Artifact (Built package)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-package
           path: "./*.deb"
