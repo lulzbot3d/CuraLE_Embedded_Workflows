@@ -86,14 +86,8 @@ jobs:
             if [[ -z "${RELEASE_VERSION}" ]]; then
               echo "Failed to parse the tag, it does not follow the standard"
             elif [[ "${RELEASE_VERSION//dev/}" == "${RELEASE_VERSION}" ]]; then ## True if there is no "dev" in the tag
-              
-              # Only perform official releases from a master branch tag
-              if [[ "${IS_MASTER_BRANCH}" == "yes" ]]; then
-                echo "Success, this is a official release"
-                RELEASE_REPO="packages-released"
-              else
-                echo "WARNING: Releasing official packages from development branches is not allowed!"
-              fi
+              echo "Success, this is a official release"
+              RELEASE_REPO="packages-released"
             else
               echo "Success, this is a development release"
               RELEASE_REPO="packages-dev"
