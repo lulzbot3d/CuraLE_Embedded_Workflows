@@ -13,27 +13,51 @@ jobs:
     env:
       RELEASE_REPO: ${{ inputs.RELEASE_REPO }}
     steps:
+      - name: Cloning Embedded-Workflows on default branch
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/embedded-workflows
+          token: ${{ secrets.ULTIMAKER_CI_PAT }}
+          fetch-depth: 0
+          path: embedded-workflows
+          ref: 'Release_with_docker_cloudsmith'
+          
       - uses: actions/download-artifact@v4
         with:
           name: build-package
           
       - name: Display structure of downloaded files
         run: ls -lh
-
-      - name: Release Package To Cloudsmith
-        id: release
-        if: ${{ env.RELEASE_REPO != 'none' }}
-        uses: cloudsmith-io/action@master
-        with:
-          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
-          command: 'push'
-          format: 'deb'
-          owner: 'ultimaker'
-          repo: "${{ env.RELEASE_REPO }}"
-          distro: 'debian'
-          release: 'buster'
-          republish: 'true'
-          file: "./*.deb"
+        
+      - name: Build Cloudsmith Docker image
+        run: |
+          docker build embedded-workflows/Dockerfiles/ -f embedded-workflows/Dockerfiles/cloudsmith.Dockerfile -t cloudsmith-cli:latest
+          docker images
+          
+      - name: Display structure of downloaded files
+        run: ls -lhR
+        
+      - name: Upload Debian Packages
+        run: |
+          for package in *.deb; do
+            echo "########## Uploading ${package}..."
+            docker run -v "$(pwd):/build" cloudsmith-cli:latest cloudsmith push deb ultimaker/${{ env.RELEASE_REPO }}/debian/buster /build/${package} -k ${{ secrets.CLOUDSMITH_API_KEY }}
+          done;
+          
+#      - name: Release Package To Cloudsmith
+#        id: release
+#        if: ${{ env.RELEASE_REPO != 'none' }}
+#        uses: cloudsmith-io/action@master
+#        with:
+#          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+#          command: 'push'
+#          format: 'deb'
+#          owner: 'ultimaker'
+#          repo: "${{ env.RELEASE_REPO }}"
+#          distro: 'debian'
+#          release: 'buster'
+#          republish: 'true'
+#          file: "./*.deb"
           
       - name: Dump GitHub context
         if: ${{ always() }}
