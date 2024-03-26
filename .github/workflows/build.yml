@@ -22,6 +22,15 @@ jobs:
       - name: Build Package
         id: build
         run: |
+          # BUILDTYPE is used by the build of premium firmware modules such
+          # as print-process-reporting. "PRODUCTION" triggers the build of
+          # an encrypted firmware module using Ultimaker/umlicensemanager.
+          # Other firmware components ignore this.
+          export BUILDTYPE=PRODUCTION
+          # Encryption key for UMMOD file in "PRODUCTION" build mode.
+          # See umlicensemanager documentation
+          export UMLM_ENCRYPTION_KEY="${{ secrets.UMLM_ENCRYPTION_KEY }}"
+
           export RELEASE_VERSION="${{ env.RELEASE_VERSION }}"
           echo "RELEASE_VERSION: ${RELEASE_VERSION}"
           
