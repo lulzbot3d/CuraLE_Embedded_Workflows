@@ -28,7 +28,12 @@ jobs:
         with:
           token: ${{ secrets.ULTIMAKER_CI_PAT }}
           submodules: recursive
-         
+
+      - name: Login in GitHub Container Registry
+        id: ghcr_login
+        run: |
+          echo "${{ secrets.ULTIMAKER_CI_PAT }}" | docker login ghcr.io -u $ --password-stdin
+                   
       - name: Build Docker Image
         id: build
         run: |
@@ -41,11 +46,6 @@ jobs:
           # Just generate a new docker image, so pass action = none          
           ./build_for_ultimaker.sh -a docker_build
           docker images
-
-      - name: Login in GitHub Container Registry
-        id: ghcr_login
-        run: |
-          echo "${{ secrets.ULTIMAKER_CI_PAT }}" | docker login ghcr.io -u $ --password-stdin
 
       - name: Release Docker Image to Github Packages
         id: release
