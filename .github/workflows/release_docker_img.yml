@@ -15,7 +15,7 @@ on:
         type: string
 
 env:
-  DOCKER_IMAGE_NAME: ghcr.io/ultimaker/${{ inputs.DOCKER_IMAGE_NAME }}
+  DOCKER_IMAGE_NAME: ghcr.io/lulzbot3d/${{ inputs.DOCKER_IMAGE_NAME }}
   DOCKER_TAG_PREFIX: ${{ inputs.DOCKER_TAG_PREFIX }}
   
 jobs:
@@ -26,13 +26,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.ULTIMAKER_CI_PAT }}
           submodules: recursive
 
       - name: Login in GitHub Container Registry
         id: ghcr_login
         run: |
-          echo "${{ secrets.ULTIMAKER_CI_PAT }}" | docker login ghcr.io -u $ --password-stdin
+          echo "" | docker login ghcr.io -u $ --password-stdin
                    
       - name: Build Docker Image
         id: build

@@ -13,13 +13,12 @@ jobs:
     env:
       RELEASE_REPO: ${{ inputs.RELEASE_REPO }}
     steps:
-      - name: Cloning Embedded-Workflows on default branch
+      - name: Cloning CuraLE_Embedded_Workflows on default branch
         uses: actions/checkout@v4
         with:
-          repository: Ultimaker/embedded-workflows
-          token: ${{ secrets.ULTIMAKER_CI_PAT }}
+          repository: lulzbot3d/CuraLE_Embedded_Workflows
           fetch-depth: 0
-          path: embedded-workflows
+          path: CuraLE_Embedded_Workflows
           
       - uses: actions/download-artifact@v4
         with:
@@ -32,7 +31,7 @@ jobs:
       - name: Build Cloudsmith Docker image
         shell: bash
         run: |
-          docker build embedded-workflows/Dockerfiles/ -f embedded-workflows/Dockerfiles/cloudsmith.Dockerfile -t cloudsmith-cli:latest
+          docker build CuraLE_Embedded_Workflows/Dockerfiles/ -f CuraLE_Embedded_Workflows/Dockerfiles/cloudsmith.Dockerfile -t cloudsmith-cli:latest
           
       - name: Upload Debian Packages
         shell: bash
@@ -41,7 +40,7 @@ jobs:
             echo " "
             echo "########## Uploading ${package} ##########"
             echo " "
-            docker run -v "$(pwd):/build" cloudsmith-cli:latest cloudsmith push deb ultimaker/${{ env.RELEASE_REPO }}/debian/buster /build/${package} -k ${{ secrets.CLOUDSMITH_API_KEY }}
+            docker run -v "$(pwd):/build" cloudsmith-cli:latest cloudsmith push deb lulzbot3d/${{ env.RELEASE_REPO }}/debian/buster /build/${package} -k ${{ secrets.CLOUDSMITH_API_KEY }}
           done;
          
       - name: Dump GitHub context

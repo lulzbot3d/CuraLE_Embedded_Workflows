@@ -1,4 +1,5 @@
-# embedded-workflows
+# CuraLE_Embedded_Workflows
+
 Store embedded software workflows.
 Do not forget this is **PUBLIC** repository.
 
